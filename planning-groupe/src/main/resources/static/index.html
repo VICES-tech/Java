@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#4f46e5">
+    <title>Planning de groupe</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="entete">
+    <h1>🎵 Planning de groupe</h1>
+    <label class="identite">
+        Je suis
+        <select id="moi">
+            <option value="">— choisir —</option>
+        </select>
+    </label>
+</header>
+
+<nav class="onglets">
+    <button class="onglet actif" data-vue="planning">📅 Planning</button>
+    <button class="onglet" data-vue="chants">🎼 Chants</button>
+    <button class="onglet" data-vue="membres">👥 Membres</button>
+</nav>
+
+<main>
+    <!-- ======================= PLANNING ======================= -->
+    <section id="vue-planning" class="vue">
+        <div class="barre">
+            <button id="semaine-prec" aria-label="Semaine précédente">◀</button>
+            <button id="semaine-auj">Aujourd'hui</button>
+            <span id="semaine-titre" class="semaine-titre"></span>
+            <button id="semaine-suiv" aria-label="Semaine suivante">▶</button>
+            <button id="nouvel-evenement" class="principal">+ Événement</button>
+        </div>
+        <div id="jours"></div>
+    </section>
+
+    <!-- ======================= CHANTS ======================= -->
+    <section id="vue-chants" class="vue" hidden>
+        <div class="deux-colonnes">
+            <aside class="liste-chants">
+                <div class="barre">
+                    <input id="recherche-chant" type="search" placeholder="Rechercher un chant…">
+                    <button id="nouveau-chant" class="principal">+ Chant</button>
+                </div>
+                <ul id="chants"></ul>
+            </aside>
+
+            <article class="chant">
+                <div class="champs-chant">
+                    <input id="chant-titre" placeholder="Titre">
+                    <input id="chant-artiste" placeholder="Artiste / auteur">
+                    <input id="chant-tonalite" placeholder="Tonalité (ex. G, Am, Sol)" class="court">
+                </div>
+                <textarea id="chant-contenu" spellcheck="false" placeholder="Colle ici les paroles et les accords.
+
+Accords au-dessus des paroles :
+C           G
+Amazing grace, how sweet the sound
+
+ou entre crochets :
+[Am]Je chante [F]pour toi"></textarea>
+                <div class="barre">
+                    <button id="enregistrer-chant" class="principal">Enregistrer</button>
+                    <button id="supprimer-chant" class="danger">Supprimer</button>
+                </div>
+
+                <div class="transposition">
+                    <h2>Transposer</h2>
+                    <div class="barre">
+                        <button id="descendre" aria-label="Descendre d'un demi-ton">− ½ ton</button>
+                        <span id="decalage" class="decalage">0</span>
+                        <button id="monter" aria-label="Monter d'un demi-ton">+ ½ ton</button>
+                        <label>vers
+                            <select id="tonalite-cible">
+                                <option value="">—</option>
+                            </select>
+                        </label>
+                        <label>écriture
+                            <select id="notation">
+                                <option value="AUTO">auto</option>
+                                <option value="DIESES">♯ dièses</option>
+                                <option value="BEMOLS">♭ bémols</option>
+                            </select>
+                        </label>
+                    </div>
+                    <p id="info-tonalite" class="info"></p>
+                    <pre id="resultat"></pre>
+                    <div class="barre">
+                        <button id="copier">Copier</button>
+                        <button id="appliquer">Garder cette tonalité</button>
+                    </div>
+                </div>
+            </article>
+        </div>
+    </section>
+
+    <!-- ======================= MEMBRES ======================= -->
+    <section id="vue-membres" class="vue" hidden>
+        <form id="form-membre" class="barre">
+            <input name="nom" placeholder="Nom" required>
+            <input name="role" placeholder="Rôle / instrument">
+            <input name="couleur" type="color" value="#4f46e5" aria-label="Couleur">
+            <button class="principal">Ajouter</button>
+        </form>
+        <ul id="membres" class="membres"></ul>
+    </section>
+</main>
+
+<!-- ======================= FORMULAIRE ÉVÉNEMENT ======================= -->
+<dialog id="dialogue-evenement">
+    <form id="form-evenement" method="dialog">
+        <h2 id="titre-dialogue">Nouvel événement</h2>
+        <label>Titre <input name="titre" required></label>
+        <label>Type
+            <select name="type">
+                <option value="REPETITION">Répétition</option>
+                <option value="CONCERT">Concert</option>
+                <option value="REUNION">Réunion</option>
+                <option value="AUTRE">Autre</option>
+            </select>
+        </label>
+        <div class="ligne">
+            <label>Date <input name="date" type="date" required></label>
+            <label>Début <input name="heureDebut" type="time" required value="19:00"></label>
+            <label>Fin <input name="heureFin" type="time" required value="21:00"></label>
+        </div>
+        <label>Lieu <input name="lieu"></label>
+        <label>Description <textarea name="description" rows="3"></textarea></label>
+        <fieldset>
+            <legend>Participants</legend>
+            <div id="choix-participants" class="cases"></div>
+        </fieldset>
+        <fieldset>
+            <legend>Programme (chants)</legend>
+            <div id="choix-chants" class="cases"></div>
+        </fieldset>
+        <p id="erreur-evenement" class="erreur"></p>
+        <div class="barre">
+            <button value="annuler" formnovalidate>Annuler</button>
+            <button id="valider-evenement" value="valider" class="principal">Enregistrer</button>
+        </div>
+    </form>
+</dialog>
+
+<div id="toast" class="toast" hidden></div>
+
+<script src="app.js"></script>
+</body>
+</html>
