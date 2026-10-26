@@ -352,6 +352,7 @@ function ouvrirChant(id, focus = false) {
     $("#tonalite-cible").value = "";
     afficherListeChants();
     transposer();
+    chargerPiecesJointes();
     if (focus) $("#chant-titre").focus();
 }
 
@@ -377,6 +378,7 @@ async function enregistrerChant() {
         etat.chantCourant = etat.chants.find((c) => c.id === chant.id);
         $("#supprimer-chant").disabled = false;
         afficherListeChants();
+        chargerPiecesJointes();
         toast("Chant enregistré");
     } catch (err) {
         toast(err.message);
@@ -388,6 +390,84 @@ $("#supprimer-chant").addEventListener("click", async () => {
     await api("DELETE", `/api/chants/${etat.chantCourant.id}`);
     await chargerChants();
     ouvrirChant(null);
+});
+
+// ---------------------------------------------------------------------
+// Pièces jointes d'un chant (audio, vidéo, PDF, images…)
+// ---------------------------------------------------------------------
+
+function tailleLisible(octets) {
+    if (octets < 1024) return `${octets} o`;
+    if (octets < 1024 * 1024) return `${Math.round(octets / 1024)} Ko`;
+    return `${(octets / 1024 / 1024).toFixed(1)} Mo`;
+}
+
+function icone(type) {
+    if (type.startsWith("audio/")) return "🎧";
+    if (type.startsWith("video/")) return "🎬";
+    if (type.startsWith("image/")) return "🖼️";
+    if (type === "application/pdf") return "📄";
+    return "📁";
+}
+
+async function chargerPiecesJointes() {
+    const chant = etat.chantCourant;
+    $("#pj-ajouter").hidden = !chant;
+    if (!chant) {
+        $("#pj-liste").innerHTML = "";
+        $("#pj-info").textContent = "Enregistre le chant pour pouvoir y joindre des fichiers.";
+        return;
+    }
+    const liste = await api("GET", `/api/chants/${chant.id}/pieces-jointes`);
+    if (etat.chantCourant?.id !== chant.id) return;   // l'utilisateur a changé de chant entre-temps
+    $("#pj-info").textContent = liste.length === 0 ? "Aucun fichier pour l'instant." : "";
+    $("#pj-liste").innerHTML = liste.map((pj) => {
+        const url = `/api/pieces-jointes/${pj.id}`;
+        let lecteur = "";
+        if (pj.type.startsWith("audio/")) lecteur = `<audio controls preload="none" src="${url}"></audio>`;
+        else if (pj.type.startsWith("video/")) lecteur = `<video controls preload="metadata" src="${url}"></video>`;
+        return `<li>
+            <div class="pj-ligne">
+                <a href="${url}" target="_blank" rel="noopener">${icone(pj.type)} ${echapper(pj.nom)}</a>
+                <small>${tailleLisible(pj.taille)}</small>
+                <button class="danger" data-supprimer-pj="${pj.id}" aria-label="Supprimer ${echapper(pj.nom)}">✕</button>
+            </div>
+            ${lecteur}
+        </li>`;
+    }).join("");
+}
+
+$("#pj-fichier").addEventListener("change", async (e) => {
+    const chant = etat.chantCourant;
+    const fichiers = [...e.target.files];
+    e.target.value = "";
+    if (!chant) return;
+    for (const fichier of fichiers) {
+        $("#pj-info").textContent = `Envoi de « ${fichier.name} »…`;
+        const donnees = new FormData();
+        donnees.append("fichier", fichier);
+        try {
+            const reponse = await fetch(`/api/chants/${chant.id}/pieces-jointes`, { method: "POST", body: donnees });
+            if (!reponse.ok) {
+                const erreur = await reponse.json().catch(() => ({}));
+                throw new Error(erreur.message || `Erreur ${reponse.status}`);
+            }
+        } catch (err) {
+            toast(`${fichier.name} : ${err.message}`);
+        }
+    }
+    await chargerPiecesJointes();
+});
+
+$("#pj-liste").addEventListener("click", async (e) => {
+    const id = e.target.dataset.supprimerPj;
+    if (!id || !confirm("Supprimer ce fichier ?")) return;
+    try {
+        await api("DELETE", `/api/pieces-jointes/${id}`);
+        await chargerPiecesJointes();
+    } catch (err) {
+        toast(err.message);
+    }
 });
 
 // Liste des tonalités cibles

@@ -240,3 +240,31 @@ fieldset { border: 1px solid var(--bord); border-radius: var(--rayon); margin: 0
     border-radius: var(--rayon);
     z-index: 20;
 }
+
+/* ---------- Pièces jointes ---------- */
+.pieces-jointes {
+    background: var(--carte);
+    border: 1px solid var(--bord);
+    border-radius: var(--rayon);
+    padding: 12px;
+}
+.pieces-jointes h2 { margin: 0 0 4px; font-size: 1.05rem; }
+#pj-liste { list-style: none; padding: 0; margin: 8px 0; }
+#pj-liste li { padding: 8px 0; border-bottom: 1px solid var(--bord); }
+#pj-liste li:last-child { border-bottom: 0; }
+.pj-ligne { display: flex; align-items: center; gap: 8px; }
+.pj-ligne a { flex: 1; min-width: 0; overflow-wrap: anywhere; color: var(--accent); }
+.pj-ligne small { color: var(--doux); white-space: nowrap; }
+.pj-ligne button { padding: 4px 10px; }
+#pj-liste audio, #pj-liste video { display: block; width: 100%; margin-top: 6px; }
+#pj-liste video { max-height: 320px; background: #000; border-radius: var(--rayon); }
+.bouton-fichier {
+    display: block;
+    padding: 12px;
+    border: 2px dashed var(--bord);
+    border-radius: var(--rayon);
+    text-align: center;
+    color: var(--accent);
+    cursor: pointer;
+}
+.bouton-fichier[hidden] { display: none; }

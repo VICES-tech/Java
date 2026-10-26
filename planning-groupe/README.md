@@ -9,6 +9,8 @@ chaque membre l'ouvre depuis **son téléphone ou son ordinateur**, dans le navi
 - **Participation** : chaque membre clique sur « ✋ Je participe ».
 - **Programme** : on associe une liste de chants à chaque événement.
 - **Répertoire de chants** : paroles et accords, avec recherche.
+- **Pièces jointes** : on joint à chaque chant n'importe quel fichier (enregistrement audio,
+  vidéo, partition PDF, photo…). Les sons et vidéos se lisent directement dans la page.
 - **Transposition** de n'importe quel chant :
   - monter ou descendre par demi-ton, ou choisir directement la tonalité d'arrivée ;
   - accords **au-dessus des paroles** (l'alignement est conservé) ou **entre crochets** `[Am]comme ça` ;
@@ -20,7 +22,7 @@ chaque membre l'ouvre depuis **son téléphone ou son ordinateur**, dans le navi
 | Partie | Technologie |
 |---|---|
 | Serveur | Java 21, Spring Boot 3 (web, JPA, validation) |
-| Base de données | H2 (fichier `data/planning.mv.db`) |
+| Base de données | H2 (fichier `data/planning.mv.db`) ; fichiers joints dans `data/fichiers/` |
 | Interface | HTML / CSS / JavaScript (sans framework), responsive |
 | Tests | JUnit 5, MockMvc |
 
@@ -50,7 +52,8 @@ mvn test
 src/main/java/fr/vices/planning/
 ├── PlanningGroupeApplication.java   point d'entrée
 ├── musique/Transposeur.java         ⭐ moteur de transposition (Java pur, sans Spring)
-├── modele/                          Membre, Evenement, Chant, TypeEvenement (tables de la base)
+├── modele/                          Membre, Evenement, Chant, PieceJointe… (tables de la base)
+├── fichiers/StockageFichiers.java   range les fichiers joints sur le disque
 ├── depot/                           accès à la base (Spring Data génère le code)
 └── web/                             API REST appelée par l'interface
 src/main/resources/static/           interface web (index.html, style.css, app.js)
@@ -68,6 +71,8 @@ src/main/resources/static/           interface web (index.html, style.css, app.j
 | POST / DELETE | `/api/evenements/{id}/participants/{membreId}` | s'inscrire / se désinscrire |
 | GET / POST | `/api/chants` | lister / ajouter un chant |
 | PUT / DELETE | `/api/chants/{id}` | modifier / supprimer |
+| GET / POST | `/api/chants/{id}/pieces-jointes` | lister / joindre un fichier (champ `fichier`) |
+| GET / DELETE | `/api/pieces-jointes/{id}` | lire ou télécharger / supprimer un fichier |
 | POST | `/api/transposition` | transposer un texte (`demiTons` ou `tonaliteCible`) |
 
 ## 🧑‍💻 À toi de jouer (idées d'exercices)

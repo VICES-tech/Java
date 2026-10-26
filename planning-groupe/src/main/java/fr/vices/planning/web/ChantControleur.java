@@ -2,8 +2,11 @@ package fr.vices.planning.web;
 
 import fr.vices.planning.depot.ChantDepot;
 import fr.vices.planning.depot.EvenementDepot;
+import fr.vices.planning.depot.PieceJointeDepot;
+import fr.vices.planning.fichiers.StockageFichiers;
 import fr.vices.planning.modele.Chant;
 import fr.vices.planning.modele.Evenement;
+import fr.vices.planning.modele.PieceJointe;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import java.util.List;
@@ -31,10 +34,15 @@ public class ChantControleur {
 
     private final ChantDepot chants;
     private final EvenementDepot evenements;
+    private final PieceJointeDepot piecesJointes;
+    private final StockageFichiers stockage;
 
-    public ChantControleur(ChantDepot chants, EvenementDepot evenements) {
+    public ChantControleur(ChantDepot chants, EvenementDepot evenements,
+                           PieceJointeDepot piecesJointes, StockageFichiers stockage) {
         this.chants = chants;
         this.evenements = evenements;
+        this.piecesJointes = piecesJointes;
+        this.stockage = stockage;
     }
 
     @GetMapping
@@ -73,7 +81,10 @@ public class ChantControleur {
         for (Evenement e : evenements.findByChantsContaining(chant)) {
             e.getChants().remove(chant);
         }
+        List<PieceJointe> fichiers = piecesJointes.findByChantOrderByAjouteLeAsc(chant);
+        piecesJointes.deleteAll(fichiers);
         chants.delete(chant);
+        fichiers.forEach(pj -> stockage.supprimer(pj.getNomStocke()));
     }
 
     private Chant trouver(Long id) {

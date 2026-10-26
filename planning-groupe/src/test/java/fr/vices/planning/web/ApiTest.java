@@ -1,9 +1,13 @@
 package fr.vices.planning.web;
 
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -14,10 +18,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 
 /** Teste l'API de bout en bout, avec une base H2 en mémoire. */
-@SpringBootTest(properties = "spring.datasource.url=jdbc:h2:mem:test;DB_CLOSE_DELAY=-1")
+@SpringBootTest(properties = {
+        "spring.datasource.url=jdbc:h2:mem:test;DB_CLOSE_DELAY=-1",
+        "planning.dossier-fichiers=target/test-fichiers"})
 @AutoConfigureMockMvc
 class ApiTest {
 
@@ -87,5 +94,46 @@ class ApiTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.texte").value("A E F#m D"))
                 .andExpect(jsonPath("$.demiTons").value(2));
+    }
+
+    @Test
+    void piecesJointes() throws Exception {
+        long chant = creer("/api/chants", "{\"titre\":\"Ave Maria\"}");
+        byte[] son = {1, 2, 3, 4, 5};
+
+        String reponse = mvc.perform(multipart("/api/chants/" + chant + "/pieces-jointes")
+                        .file(new MockMultipartFile("fichier", "Ave Maria - alto.mp3", "audio/mpeg", son)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.nom").value("Ave Maria - alto.mp3"))
+                .andExpect(jsonPath("$.taille").value(5))
+                .andExpect(jsonPath("$.nomStocke").doesNotExist())
+                .andReturn().getResponse().getContentAsString();
+        long audio = json.readTree(reponse).get("id").asLong();
+
+        // un fichier HTML ne doit jamais s'ouvrir dans le navigateur (risque de script)
+        reponse = mvc.perform(multipart("/api/chants/" + chant + "/pieces-jointes")
+                        .file(new MockMultipartFile("fichier", "piege.html", "text/html", "<script>".getBytes())))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        long html = json.readTree(reponse).get("id").asLong();
+
+        mvc.perform(get("/api/chants/" + chant + "/pieces-jointes"))
+                .andExpect(jsonPath("$", hasSize(2)));
+
+        mvc.perform(get("/api/pieces-jointes/" + audio))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("audio/mpeg"))
+                .andExpect(header().string("Content-Disposition", startsWith("inline")))
+                .andExpect(content().bytes(son));
+
+        mvc.perform(get("/api/pieces-jointes/" + html))
+                .andExpect(content().contentType(MediaType.APPLICATION_OCTET_STREAM))
+                .andExpect(header().string("Content-Disposition", startsWith("attachment")));
+
+        mvc.perform(delete("/api/pieces-jointes/" + html)).andExpect(status().isNoContent());
+
+        // supprimer le chant supprime aussi ses fichiers
+        mvc.perform(delete("/api/chants/" + chant)).andExpect(status().isNoContent());
+        mvc.perform(get("/api/pieces-jointes/" + audio)).andExpect(status().isNotFound());
     }
 }
