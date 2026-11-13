@@ -24,6 +24,9 @@ public class Chant {
     /** Tonalité de référence, ex. « G », « Am », « Sol ». Peut être vide. */
     private String tonalite;
 
+    /** Tempo en battements par minute (BPM). Vide si on ne le connaît pas. */
+    private Integer tempo;
+
     /** Paroles avec accords (lignes d'accords ou format [Am]ChordPro). */
     @Column(length = 50_000)
     private String contenu;
@@ -64,6 +67,14 @@ public class Chant {
 
     public void setTonalite(String tonalite) {
         this.tonalite = tonalite;
+    }
+
+    public Integer getTempo() {
+        return tempo;
+    }
+
+    public void setTempo(Integer tempo) {
+        this.tempo = tempo;
     }
 
     public String getContenu() {
