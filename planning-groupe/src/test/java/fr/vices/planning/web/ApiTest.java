@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -135,5 +136,20 @@ class ApiTest {
         // supprimer le chant supprime aussi ses fichiers
         mvc.perform(delete("/api/chants/" + chant)).andExpect(status().isNoContent());
         mvc.perform(get("/api/pieces-jointes/" + audio)).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void tempoDesChants() throws Exception {
+        long chant = creer("/api/chants", "{\"titre\":\"Oh Happy Day\",\"tempo\":96}");
+        mvc.perform(get("/api/chants/" + chant))
+                .andExpect(jsonPath("$.tempo").value(96));
+
+        // on peut changer le tempo, ou le laisser vide
+        mvc.perform(put("/api/chants/" + chant).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"titre\":\"Oh Happy Day\",\"tempo\":104}"))
+                .andExpect(jsonPath("$.tempo").value(104));
+        mvc.perform(put("/api/chants/" + chant).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"titre\":\"Oh Happy Day\"}"))
+                .andExpect(jsonPath("$.tempo").doesNotExist());
     }
 }

@@ -29,7 +29,8 @@ import org.springframework.web.server.ResponseStatusException;
 public class ChantControleur {
 
     /** Données envoyées par l'interface pour créer ou modifier un chant. */
-    public record ChantRequete(@NotBlank String titre, String artiste, String tonalite, String contenu) {
+    public record ChantRequete(@NotBlank String titre, String artiste, String tonalite, Integer tempo,
+                               String contenu) {
     }
 
     private final ChantDepot chants;
@@ -58,8 +59,10 @@ public class ChantControleur {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public Chant creer(@Valid @RequestBody ChantRequete requete) {
-        return chants.save(new Chant(requete.titre().trim(), requete.artiste(),
-                requete.tonalite(), requete.contenu()));
+        Chant chant = new Chant(requete.titre().trim(), requete.artiste(),
+                requete.tonalite(), requete.contenu());
+        chant.setTempo(requete.tempo());
+        return chants.save(chant);
     }
 
     @PutMapping("/{id}")
@@ -69,6 +72,7 @@ public class ChantControleur {
         chant.setTitre(requete.titre().trim());
         chant.setArtiste(requete.artiste());
         chant.setTonalite(requete.tonalite());
+        chant.setTempo(requete.tempo());
         chant.setContenu(requete.contenu());
         return chant;
     }
