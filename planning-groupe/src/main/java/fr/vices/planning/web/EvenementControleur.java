@@ -4,8 +4,8 @@ import fr.vices.planning.depot.ChantDepot;
 import fr.vices.planning.depot.EvenementDepot;
 import fr.vices.planning.depot.MembreDepot;
 import fr.vices.planning.modele.Evenement;
-import fr.vices.planning.modele.Membre;
 import fr.vices.planning.modele.TypeEvenement;
+import fr.vices.planning.securite.MembreCourant;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -47,11 +47,14 @@ public class EvenementControleur {
     private final EvenementDepot evenements;
     private final MembreDepot membres;
     private final ChantDepot chants;
+    private final MembreCourant membreCourant;
 
-    public EvenementControleur(EvenementDepot evenements, MembreDepot membres, ChantDepot chants) {
+    public EvenementControleur(EvenementDepot evenements, MembreDepot membres, ChantDepot chants,
+                               MembreCourant membreCourant) {
         this.evenements = evenements;
         this.membres = membres;
         this.chants = chants;
+        this.membreCourant = membreCourant;
     }
 
     /** Liste les événements entre deux dates (incluses), ex. ?du=2026-10-12&amp;au=2026-10-18 */
@@ -91,21 +94,21 @@ public class EvenementControleur {
         evenements.delete(trouver(id));
     }
 
-    /** Un membre s'inscrit à l'événement (« Je participe »). */
-    @PostMapping("/{id}/participants/{membreId}")
+    /** Le membre connecté s'inscrit à l'événement (« Je participe »). */
+    @PostMapping("/{id}/participation")
     @Transactional
-    public Evenement participer(@PathVariable Long id, @PathVariable Long membreId) {
+    public Evenement participer(@PathVariable Long id) {
         Evenement evenement = trouver(id);
-        evenement.getParticipants().add(trouverMembre(membreId));
+        evenement.getParticipants().add(membreCourant.exiger());
         return evenement;
     }
 
-    /** Un membre se désinscrit de l'événement. */
-    @DeleteMapping("/{id}/participants/{membreId}")
+    /** Le membre connecté se désinscrit de l'événement. */
+    @DeleteMapping("/{id}/participation")
     @Transactional
-    public Evenement seRetirer(@PathVariable Long id, @PathVariable Long membreId) {
+    public Evenement seRetirer(@PathVariable Long id) {
         Evenement evenement = trouver(id);
-        evenement.getParticipants().remove(trouverMembre(membreId));
+        evenement.getParticipants().remove(membreCourant.exiger());
         return evenement;
     }
 
@@ -135,10 +138,5 @@ public class EvenementControleur {
     private Evenement trouver(Long id) {
         return evenements.findById(id).orElseThrow(() ->
                 new ResponseStatusException(HttpStatus.NOT_FOUND, "Événement introuvable"));
-    }
-
-    private Membre trouverMembre(Long id) {
-        return membres.findById(id).orElseThrow(() ->
-                new ResponseStatusException(HttpStatus.NOT_FOUND, "Membre introuvable"));
     }
 }

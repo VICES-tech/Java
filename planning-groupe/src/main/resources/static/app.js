@@ -1,9 +1,10 @@
 // =====================================================================
-// Planning de groupe — interface web
+// PlanIt — interface web
 // Parle au serveur Java via l'API REST (/api/...).
 // =====================================================================
 
 const etat = {
+    moi: null,                    // le membre connecté
     membres: [],
     chants: [],
     lundi: lundiDe(new Date()),   // premier jour de la semaine affichée
@@ -25,12 +26,25 @@ const TONALITES = [
 // Outils
 // ---------------------------------------------------------------------
 
+/** Jeton anti-CSRF : le serveur le dépose dans un cookie, on le renvoie avec chaque modification. */
+function jetonCsrf() {
+    const trouve = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]*)/);
+    return trouve ? decodeURIComponent(trouve[1]) : "";
+}
+
 async function api(methode, url, corps) {
+    const entetes = {};
+    if (corps !== undefined) entetes["Content-Type"] = "application/json";
+    if (methode !== "GET") entetes["X-XSRF-TOKEN"] = jetonCsrf();
     const reponse = await fetch(url, {
         method: methode,
-        headers: corps !== undefined ? { "Content-Type": "application/json" } : {},
+        headers: entetes,
         body: corps !== undefined ? JSON.stringify(corps) : undefined,
     });
+    if (reponse.status === 401) {
+        location.replace("/connexion.html");   // plus connecté : retour à la page de connexion
+        throw new Error("Connexion requise");
+    }
     if (!reponse.ok) {
         let message = `Erreur ${reponse.status}`;
         try {
@@ -80,7 +94,7 @@ function heure(d) {
 }
 
 function moiId() {
-    try { return Number(localStorage.getItem("moi")) || null; } catch { return null; }
+    return etat.moi?.id ?? null;
 }
 
 // ---------------------------------------------------------------------
@@ -103,52 +117,201 @@ function afficherVue(vue) {
 
 async function chargerMembres() {
     etat.membres = await api("GET", "/api/membres");
-    const select = $("#moi");
-    const choisi = moiId();
-    select.innerHTML = `<option value="">— choisir —</option>` + etat.membres
-        .map((m) => `<option value="${m.id}" ${m.id === choisi ? "selected" : ""}>${echapper(m.nom)}</option>`)
-        .join("");
+    const admin = etat.moi.admin;
+    $("#form-membre").hidden = !admin;
+    $("#info-membres").textContent = admin
+        ? "Ajoute un membre : tu recevras un mot de passe provisoire à lui transmettre."
+        : "Seuls les administrateurs peuvent ajouter ou retirer des membres.";
 
-    $("#membres").innerHTML = etat.membres.length === 0
-        ? `<p class="vide">Aucun membre pour l'instant. Ajoute le premier !</p>`
-        : etat.membres.map((m) => `
-            <li>
-                <span class="rond" style="background:${m.couleur || "var(--accent)"}"></span>
-                <span class="nom">${echapper(m.nom)} <small>${echapper(m.role || "")}</small></span>
-                <button class="danger" data-supprimer-membre="${m.id}">Supprimer</button>
-            </li>`).join("");
+    $("#membres").innerHTML = etat.membres.map((m) => {
+        const cEstMoi = m.id === etat.moi.id;
+        let actions = "";
+        if (cEstMoi) {
+            actions = `<button data-action="compte">Mon compte</button>`;
+        } else if (admin) {
+            actions = `<button data-action="mdp" data-id="${m.id}">Mot de passe</button>
+                <button data-action="admin" data-id="${m.id}" data-admin="${!m.admin}">
+                    ${m.admin ? "Retirer admin" : "Nommer admin"}</button>
+                <button class="danger" data-action="supprimer" data-id="${m.id}">Supprimer</button>`;
+        }
+        return `<li>
+            <span class="rond" style="background:${m.couleur || "var(--accent)"}"></span>
+            <span class="nom">${echapper(m.nom)}${m.admin ? ` <span class="badge">admin</span>` : ""}
+                <small>${echapper([m.role, m.email].filter(Boolean).join(" · "))}</small></span>
+            <span class="actions">${actions}</span>
+        </li>`;
+    }).join("");
 }
-
-$("#moi").addEventListener("change", (e) => {
-    try { localStorage.setItem("moi", e.target.value); } catch { /* navigation privée */ }
-    chargerPlanning();
-});
 
 $("#form-membre").addEventListener("submit", async (e) => {
     e.preventDefault();
-    const form = e.target;
+    const champs = e.target.elements;
     try {
-        const membre = await api("POST", "/api/membres", {
-            nom: form.nom.value,
-            role: form.role.value,
-            couleur: form.couleur.value,
+        const cree = await api("POST", "/api/membres", {
+            nom: champs.nom.value,
+            email: champs.email.value,
+            role: champs.role.value,
+            couleur: champs.couleur.value,
         });
-        form.reset();
-        if (!moiId()) {
-            try { localStorage.setItem("moi", membre.id); } catch { /* ignore */ }
-        }
+        e.target.reset();
         await chargerMembres();
-        toast(`${membre.nom} a rejoint le groupe`);
+        montrerCode(`Compte créé pour ${cree.membre.nom}`,
+            "Transmets-lui ce mot de passe provisoire. Il devra le changer à sa première connexion.",
+            cree.motDePasseProvisoire);
     } catch (err) {
         toast(err.message);
     }
 });
 
 $("#membres").addEventListener("click", async (e) => {
-    const id = e.target.dataset.supprimerMembre;
-    if (!id || !confirm("Supprimer ce membre ?")) return;
-    await api("DELETE", `/api/membres/${id}`);
-    await chargerMembres();
+    const bouton = e.target.closest("[data-action]");
+    if (!bouton) return;
+    const { action, id } = bouton.dataset;
+    const membre = etat.membres.find((m) => m.id === Number(id));
+    try {
+        if (action === "compte") {
+            ouvrirCompte();
+        } else if (action === "mdp") {
+            if (!confirm(`Donner un nouveau mot de passe provisoire à ${membre.nom} ?`)) return;
+            const r = await api("POST", `/api/membres/${id}/mot-de-passe`);
+            montrerCode(`Nouveau mot de passe pour ${membre.nom}`,
+                "Transmets-lui ce mot de passe provisoire. Il devra le changer à sa prochaine connexion.",
+                r.motDePasseProvisoire);
+        } else if (action === "admin") {
+            await api("PUT", `/api/membres/${id}/admin`, { admin: bouton.dataset.admin === "true" });
+            await chargerMembres();
+        } else if (action === "supprimer") {
+            if (!confirm(`Supprimer le compte de ${membre.nom} ?`)) return;
+            await api("DELETE", `/api/membres/${id}`);
+            await chargerMembres();
+            chargerPlanning();
+        }
+    } catch (err) {
+        toast(err.message);
+    }
+});
+
+/** Affiche un mot de passe provisoire à transmettre (il n'est montré qu'une fois). */
+function montrerCode(titre, texte, code) {
+    $("#code-titre").textContent = titre;
+    $("#code-texte").textContent = texte;
+    $("#code-valeur").textContent = code;
+    $("#dialogue-code").showModal();
+}
+
+$("#code-fermer").addEventListener("click", () => {
+    $("#code-valeur").textContent = "";
+    $("#dialogue-code").close();
+});
+$("#code-copier").addEventListener("click", async () => {
+    try {
+        await navigator.clipboard.writeText($("#code-valeur").textContent);
+        toast("Copié !");
+    } catch {
+        toast("Copie impossible : note-le à la main");
+    }
+});
+
+// ---------------------------------------------------------------------
+// Mon compte
+// ---------------------------------------------------------------------
+
+async function chargerSession() {
+    const session = await api("GET", "/api/session");
+    if (!session.connecte) {
+        location.replace("/connexion.html");
+        throw new Error("Connexion requise");
+    }
+    etat.moi = session.membre;
+    $("#mon-compte").textContent = `👤 ${etat.moi.nom}`;
+}
+
+function ouvrirCompte() {
+    const champs = $("#form-profil").elements;
+    champs.nom.value = etat.moi.nom;
+    champs.role.value = etat.moi.role || "";
+    champs.email.value = etat.moi.email || "";
+    champs.couleur.value = etat.moi.couleur || "#4f46e5";
+    $("#form-mot-de-passe").reset();
+    $("#erreur-compte").textContent = "";
+    $("#dialogue-compte").showModal();
+}
+
+$("#mon-compte").addEventListener("click", ouvrirCompte);
+$("#fermer-compte").addEventListener("click", () => $("#dialogue-compte").close());
+
+$("#form-profil").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const champs = e.target.elements;
+    try {
+        await api("PUT", `/api/membres/${etat.moi.id}`, {
+            nom: champs.nom.value,
+            role: champs.role.value,
+            couleur: champs.couleur.value,
+            email: champs.email.value,
+        });
+        await chargerSession();
+        await chargerMembres();
+        chargerPlanning();
+        $("#erreur-compte").textContent = "";
+        toast("Profil enregistré");
+    } catch (err) {
+        $("#erreur-compte").textContent = err.message;
+    }
+});
+
+$("#form-mot-de-passe").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const champs = e.target.elements;
+    try {
+        await api("POST", "/api/compte/mot-de-passe", { ancien: champs.ancien.value, nouveau: champs.nouveau.value });
+        e.target.reset();
+        $("#erreur-compte").textContent = "";
+        toast("Mot de passe changé");
+    } catch (err) {
+        $("#erreur-compte").textContent = err.message;
+    }
+});
+
+$("#deconnexion").addEventListener("click", async () => {
+    try {
+        await api("POST", "/api/deconnexion");
+    } finally {
+        location.replace("/connexion.html");
+    }
+});
+
+$("#supprimer-compte").addEventListener("click", () => {
+    $("#form-suppression").reset();
+    $("#erreur-suppression").textContent = "";
+    $("#dialogue-suppression").showModal();
+});
+$("#annuler-suppression").addEventListener("click", () => $("#dialogue-suppression").close());
+
+$("#form-suppression").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    try {
+        await api("POST", "/api/compte/suppression", { motDePasse: e.target.elements.motDePasse.value });
+        location.replace("/connexion.html");
+    } catch (err) {
+        $("#erreur-suppression").textContent = err.message;
+    }
+});
+
+// Première connexion avec un mot de passe provisoire : il faut en choisir un nouveau.
+$("#dialogue-provisoire").addEventListener("cancel", (e) => e.preventDefault());   // pas de fermeture par Échap
+
+$("#form-provisoire").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const champs = e.target.elements;
+    try {
+        await api("POST", "/api/compte/mot-de-passe", { ancien: champs.ancien.value, nouveau: champs.nouveau.value });
+        etat.moi.doitChangerMotDePasse = false;
+        $("#dialogue-provisoire").close();
+        toast("Mot de passe enregistré");
+    } catch (err) {
+        $("#erreur-provisoire").textContent = err.message;
+    }
 });
 
 // ---------------------------------------------------------------------
@@ -202,8 +365,8 @@ function carteEvenement(ev, moi) {
         ${programme}
         <div class="pastilles">${participants || `<span class="vide">Aucun participant</span>`}</div>
         <div class="barre">
-            ${moi ? `<button data-participer="${ev.id}" data-oui="${!jeParticipe}">
-                ${jeParticipe ? "Je ne viens plus" : "✋ Je participe"}</button>` : ""}
+            <button data-participer="${ev.id}" data-oui="${!jeParticipe}">
+                ${jeParticipe ? "Je ne viens plus" : "✋ Je participe"}</button>
             <button data-modifier="${ev.id}">Modifier</button>
             <button class="danger" data-supprimer="${ev.id}">Supprimer</button>
         </div>
@@ -222,7 +385,7 @@ $("#jours").addEventListener("click", async (e) => {
     try {
         if (d.participer) {
             const methode = d.oui === "true" ? "POST" : "DELETE";
-            await api(methode, `/api/evenements/${d.participer}/participants/${moiId()}`);
+            await api(methode, `/api/evenements/${d.participer}/participation`);
             chargerPlanning();
         } else if (d.modifier) {
             const ev = $("#jours").evenements.find((x) => x.id === Number(d.modifier));
@@ -450,7 +613,11 @@ $("#pj-fichier").addEventListener("change", async (e) => {
         const donnees = new FormData();
         donnees.append("fichier", fichier);
         try {
-            const reponse = await fetch(`/api/chants/${chant.id}/pieces-jointes`, { method: "POST", body: donnees });
+            const reponse = await fetch(`/api/chants/${chant.id}/pieces-jointes`, {
+                method: "POST",
+                headers: { "X-XSRF-TOKEN": jetonCsrf() },
+                body: donnees,
+            });
             if (!reponse.ok) {
                 const erreur = await reponse.json().catch(() => ({}));
                 throw new Error(erreur.message || `Erreur ${reponse.status}`);
@@ -547,9 +714,11 @@ $("#appliquer").addEventListener("click", async () => {
 
 async function demarrer() {
     try {
+        await chargerSession();
         await Promise.all([chargerMembres(), chargerChants()]);
         await chargerPlanning();
         ouvrirChant(null);
+        if (etat.moi.doitChangerMotDePasse) $("#dialogue-provisoire").showModal();
     } catch (err) {
         toast("Serveur injoignable : " + err.message);
     }

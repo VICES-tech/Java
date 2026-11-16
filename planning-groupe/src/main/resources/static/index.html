@@ -4,18 +4,13 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#4f46e5">
-    <title>Planning de groupe</title>
+    <title>PlanIt</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header class="entete">
-    <h1>🎵 Planning de groupe</h1>
-    <label class="identite">
-        Je suis
-        <select id="moi">
-            <option value="">— choisir —</option>
-        </select>
-    </label>
+    <h1>🎵 PlanIt</h1>
+    <button id="mon-compte" class="identite" title="Mon compte">👤</button>
 </header>
 
 <nav class="onglets">
@@ -110,12 +105,14 @@ ou entre crochets :
 
     <!-- ======================= MEMBRES ======================= -->
     <section id="vue-membres" class="vue" hidden>
-        <form id="form-membre" class="barre">
-            <input name="nom" placeholder="Nom" required>
+        <form id="form-membre" class="barre" hidden>
+            <input name="nom" placeholder="Nom" required maxlength="60">
+            <input name="email" type="email" placeholder="E-mail" required autocomplete="off">
             <input name="role" placeholder="Rôle / instrument">
             <input name="couleur" type="color" value="#4f46e5" aria-label="Couleur">
             <button class="principal">Ajouter</button>
         </form>
+        <p id="info-membres" class="info"></p>
         <ul id="membres" class="membres"></ul>
     </section>
 </main>
@@ -154,6 +151,76 @@ ou entre crochets :
             <button id="valider-evenement" value="valider" class="principal">Enregistrer</button>
         </div>
     </form>
+</dialog>
+
+<!-- ======================= MON COMPTE ======================= -->
+<dialog id="dialogue-compte">
+    <h2>Mon compte</h2>
+    <form id="form-profil">
+        <label>Nom <input name="nom" required maxlength="60"></label>
+        <label>Rôle / instrument <input name="role"></label>
+        <label>E-mail <input name="email" type="email" required autocomplete="username"></label>
+        <label>Couleur <input name="couleur" type="color"></label>
+        <button class="principal">Enregistrer</button>
+    </form>
+    <form id="form-mot-de-passe">
+        <h3>Changer de mot de passe</h3>
+        <label>Mot de passe actuel
+            <input name="ancien" type="password" required autocomplete="current-password">
+        </label>
+        <label>Nouveau mot de passe (8 caractères minimum)
+            <input name="nouveau" type="password" required minlength="8" maxlength="64" autocomplete="new-password">
+        </label>
+        <button>Changer le mot de passe</button>
+    </form>
+    <p id="erreur-compte" class="erreur" role="alert"></p>
+    <div class="barre">
+        <button id="deconnexion">Se déconnecter</button>
+        <button id="supprimer-compte" class="danger">Supprimer mon compte</button>
+        <button id="fermer-compte">Fermer</button>
+    </div>
+</dialog>
+
+<dialog id="dialogue-suppression">
+    <form id="form-suppression">
+        <h2>Supprimer mon compte</h2>
+        <p class="info">Ton compte et tes inscriptions aux événements seront effacés. C'est définitif.</p>
+        <label>Mot de passe
+            <input name="motDePasse" type="password" required autocomplete="current-password">
+        </label>
+        <p id="erreur-suppression" class="erreur" role="alert"></p>
+        <div class="barre">
+            <button type="button" id="annuler-suppression">Annuler</button>
+            <button class="danger">Supprimer définitivement</button>
+        </div>
+    </form>
+</dialog>
+
+<!-- Première connexion avec un mot de passe provisoire -->
+<dialog id="dialogue-provisoire">
+    <form id="form-provisoire">
+        <h2>Choisis ton mot de passe</h2>
+        <p class="info">Ton mot de passe actuel est provisoire. Choisis-en un que toi seul connais.</p>
+        <label>Mot de passe provisoire
+            <input name="ancien" type="password" required autocomplete="current-password">
+        </label>
+        <label>Nouveau mot de passe (8 caractères minimum)
+            <input name="nouveau" type="password" required minlength="8" maxlength="64" autocomplete="new-password">
+        </label>
+        <p id="erreur-provisoire" class="erreur" role="alert"></p>
+        <button class="principal">Enregistrer</button>
+    </form>
+</dialog>
+
+<!-- Mot de passe provisoire à transmettre (administrateurs) -->
+<dialog id="dialogue-code">
+    <h2 id="code-titre"></h2>
+    <p id="code-texte" class="info"></p>
+    <p id="code-valeur" class="code-a-copier"></p>
+    <div class="barre">
+        <button id="code-copier" class="principal">Copier</button>
+        <button id="code-fermer">Fermer</button>
+    </div>
 </dialog>
 
 <div id="toast" class="toast" hidden></div>

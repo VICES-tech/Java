@@ -25,6 +25,9 @@
 
 * { box-sizing: border-box; }
 
+/* Un élément marqué « hidden » reste caché, même si une autre règle lui donne un affichage. */
+[hidden] { display: none !important; }
+
 body {
     margin: 0;
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -43,7 +46,7 @@ body {
     border-bottom: 1px solid var(--bord);
 }
 .entete h1 { margin: 0; font-size: 1.2rem; }
-.identite { font-size: .9rem; color: var(--doux); }
+.identite { font-size: .9rem; max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .onglets {
     display: flex;
@@ -197,6 +200,7 @@ pre#resultat {
 .membres { list-style: none; padding: 0; }
 .membres li {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 10px;
     padding: 10px 12px;
@@ -206,8 +210,20 @@ pre#resultat {
     margin-bottom: 6px;
 }
 .membres .rond { width: 14px; height: 14px; border-radius: 50%; flex: none; }
-.membres .nom { flex: 1; }
-.membres small { color: var(--doux); }
+.membres .nom { flex: 1 1 160px; min-width: 0; overflow-wrap: anywhere; }
+.membres small { color: var(--doux); display: block; }
+.membres .actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.membres .actions button { padding: 6px 10px; font-size: .9rem; }
+.badge {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: var(--accent);
+    color: var(--accent-texte);
+    font-size: .7rem;
+    font-weight: 600;
+    vertical-align: middle;
+}
 
 /* ---------- Dialogue ---------- */
 dialog {
@@ -267,4 +283,49 @@ fieldset { border: 1px solid var(--bord); border-radius: var(--rayon); margin: 0
     color: var(--accent);
     cursor: pointer;
 }
-.bouton-fichier[hidden] { display: none; }
+
+/* ---------- Connexion et compte ---------- */
+.page-connexion {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+.carte-connexion {
+    width: min(400px, 100%);
+    margin: 0;
+    padding: 24px;
+    background: var(--carte);
+    border: 1px solid var(--bord);
+    border-radius: var(--rayon);
+}
+.carte-connexion h1 { margin: 0 0 8px; text-align: center; }
+.carte-connexion form, #dialogue-compte form, #form-provisoire, #form-suppression {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.carte-connexion label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: .9rem;
+}
+.carte-connexion .info { text-align: center; margin: 0; }
+.carte-connexion .erreur { margin: 0; }
+dialog h3 { margin: 12px 0 0; font-size: 1rem; }
+dialog form label { margin-bottom: 0; }
+#dialogue-compte form { margin-bottom: 14px; }
+.code-a-copier {
+    margin: 12px 0;
+    padding: 14px;
+    text-align: center;
+    font-family: ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace;
+    font-size: 1.3rem;
+    letter-spacing: .05em;
+    background: var(--fond);
+    border-radius: var(--rayon);
+    user-select: all;
+    overflow-wrap: anywhere;
+}

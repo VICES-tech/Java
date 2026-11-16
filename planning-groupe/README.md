@@ -1,10 +1,12 @@
-# 🎵 Planning de groupe — Java
+# 🎵 PlanIt — planning de groupe en Java
 
-Application web pour organiser un groupe de musique (chorale, groupe de louange, orchestre…) :
-chaque membre l'ouvre depuis **son téléphone ou son ordinateur**, dans le navigateur, sans rien installer.
+Application web privée pour organiser un groupe de musique (chorale, groupe de louange, orchestre…) :
+chaque membre l'ouvre depuis **son téléphone ou son ordinateur**, dans le navigateur, et se connecte avec son compte.
 
 ## ✨ Fonctionnalités
 
+- **Comptes** : chaque membre se connecte avec son e-mail et son mot de passe ; rien n'est visible sans connexion.
+  Les administrateurs créent les comptes, redonnent un mot de passe oublié et retirent un membre.
 - **Planning partagé** : répétitions, concerts, réunions, avec une vue par semaine.
 - **Participation** : chaque membre clique sur « ✋ Je participe ».
 - **Programme** : on associe une liste de chants à chaque événement.
@@ -21,10 +23,10 @@ chaque membre l'ouvre depuis **son téléphone ou son ordinateur**, dans le navi
 
 | Partie | Technologie |
 |---|---|
-| Serveur | Java 21, Spring Boot 4.1 (web, JPA, validation) |
+| Serveur | Java 21, Spring Boot 4.1 (web, JPA, validation, sécurité) |
 | Base de données | H2 (fichier `data/planning.mv.db`) ; fichiers joints dans `data/fichiers/` |
 | Interface | HTML / CSS / JavaScript (sans framework), responsive |
-| Tests | JUnit 5, MockMvc |
+| Tests | JUnit 5, MockMvc, Spring Security Test |
 
 ## 🚀 Lancer l'application
 
@@ -36,6 +38,10 @@ mvn spring-boot:run
 ```
 
 Puis ouvrir <http://localhost:8080>.
+
+**Premier lancement** : la page propose de créer le premier compte, qui devient l'administrateur du groupe.
+Il ajoute ensuite les autres membres dans l'onglet « Membres » : chacun reçoit un mot de passe provisoire,
+à changer à sa première connexion.
 
 **Depuis un téléphone** (même réseau Wi-Fi que le PC) : trouver l'adresse IP du PC
 (`ipconfig` sous Windows, `ip a` sous Linux) puis ouvrir `http://<IP-du-PC>:8080`.
@@ -55,25 +61,47 @@ src/main/java/fr/vices/planning/
 ├── modele/                          Membre, Evenement, Chant, PieceJointe… (tables de la base)
 ├── fichiers/StockageFichiers.java   range les fichiers joints sur le disque
 ├── depot/                           accès à la base (Spring Data génère le code)
+├── securite/                        connexion, mots de passe chiffrés, droits des administrateurs
 └── web/                             API REST appelée par l'interface
-src/main/resources/static/           interface web (index.html, style.css, app.js)
+src/main/resources/static/           interface web (index.html, connexion.html, style.css, app.js…)
 ```
 
 ### API REST
 
 | Méthode | URL | Rôle |
 |---|---|---|
-| GET / POST | `/api/membres` | lister / ajouter un membre |
-| PUT / DELETE | `/api/membres/{id}` | modifier / supprimer |
+| GET | `/api/session` | qui est connecté ? |
+| POST | `/api/connexion`, `/api/deconnexion` | se connecter / se déconnecter |
+| POST | `/api/inscription` | créer le tout premier compte (administrateur) |
+| POST | `/api/compte/mot-de-passe`, `/api/compte/suppression` | changer son mot de passe / supprimer son compte |
+| GET | `/api/membres` | lister les membres |
+| POST | `/api/membres` | créer un compte (administrateur) |
+| PUT | `/api/membres/{id}` | modifier une fiche (la sienne, ou toutes pour un administrateur) |
+| PUT | `/api/membres/{id}/admin` | donner ou retirer le droit d'administrateur |
+| POST | `/api/membres/{id}/mot-de-passe` | redonner un mot de passe provisoire (administrateur) |
+| DELETE | `/api/membres/{id}` | supprimer un compte (administrateur) |
 | GET | `/api/evenements?du=AAAA-MM-JJ&au=AAAA-MM-JJ` | événements d'une période |
 | POST | `/api/evenements` | créer un événement |
 | PUT / DELETE | `/api/evenements/{id}` | modifier / supprimer |
-| POST / DELETE | `/api/evenements/{id}/participants/{membreId}` | s'inscrire / se désinscrire |
+| POST / DELETE | `/api/evenements/{id}/participation` | s'inscrire / se désinscrire (le membre connecté) |
 | GET / POST | `/api/chants` | lister / ajouter un chant |
 | PUT / DELETE | `/api/chants/{id}` | modifier / supprimer |
 | GET / POST | `/api/chants/{id}/pieces-jointes` | lister / joindre un fichier (champ `fichier`) |
 | GET / DELETE | `/api/pieces-jointes/{id}` | lire ou télécharger / supprimer un fichier |
 | POST | `/api/transposition` | transposer un texte (`demiTons` ou `tonaliteCible`) |
+
+Toutes les adresses demandent d'être connecté, sauf `/api/session`, `/api/connexion` et `/api/inscription`.
+
+### Sécurité
+
+- Les mots de passe sont chiffrés (BCrypt) : le serveur ne connaît jamais le mot de passe en clair.
+- Chaque envoi qui modifie quelque chose porte un jeton anti-CSRF.
+- L'e-mail d'un membre n'est visible que par lui-même et par les administrateurs.
+- Il reste toujours au moins un administrateur dans le groupe.
+
+Avant la mise en ligne, il restera à activer : HTTPS, le code d'installation
+(`planit.code-installation`), la limitation des tentatives de connexion et des sessions
+qui survivent au redémarrage du serveur.
 
 ## 🧑‍💻 À toi de jouer (idées d'exercices)
 
@@ -83,8 +111,9 @@ Classées de la plus simple à la plus difficile :
 2. **Ajouter un type d'événement** (ex. `MESSE`, `ENREGISTREMENT`) dans `TypeEvenement` et dans le `<select>` du formulaire.
 3. **Suggestion de capo** : dans `Transposeur`, écrire `int capoPour(String tonaliteJouee, String tonaliteVoulue)` + un test dans `TransposeurTest`.
 4. **Indisponibilités** : un membre indique « absent du … au … » (nouvelle entité + contrôleur).
-5. **Comptes et mots de passe** avec Spring Security, pour que seuls les membres accèdent au planning.
-6. **Mettre en ligne** l'application (Render, Railway, un VPS…) pour y accéder hors du Wi-Fi.
+5. **Invitation par code** : un administrateur crée un code, un nouveau membre s'inscrit lui-même avec ce code
+   (entité `Invitation`, puis `SessionControleur.inscrire`).
+6. **Mettre en ligne** l'application sur un petit serveur pour y accéder hors du Wi-Fi.
 
 ## 👤 Auteur
 
