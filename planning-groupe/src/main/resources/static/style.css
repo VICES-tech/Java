@@ -165,8 +165,8 @@ input[type="color"] { padding: 2px; width: 44px; height: 40px; }
 
 .chant { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .champs-chant { display: flex; flex-wrap: wrap; gap: 8px; }
-.champs-chant input { flex: 1 1 180px; }
-.champs-chant input.court { flex: 0 1 200px; }
+.champs-chant input { flex: 1 1 220px; }
+.champs-chant input.court { flex: 1 1 140px; }
 
 textarea#chant-contenu, pre#resultat {
     font-family: ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace;

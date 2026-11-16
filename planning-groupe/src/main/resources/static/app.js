@@ -329,7 +329,8 @@ function afficherListeChants() {
     $("#chants").innerHTML = chants.length === 0
         ? `<p class="vide">Aucun chant.</p>`
         : chants.map((c) => `<li data-id="${c.id}" class="${etat.chantCourant?.id === c.id ? "actif" : ""}">
-            ${echapper(c.titre)}<small>${echapper(c.artiste || "")}${c.tonalite ? ` · ${echapper(c.tonalite)}` : ""}</small>
+            ${echapper(c.titre)}<small>${[c.artiste, c.tonalite, c.tempo ? `${c.tempo} BPM` : ""]
+                .filter(Boolean).map(echapper).join(" · ")}</small>
         </li>`).join("");
 }
 
@@ -346,6 +347,7 @@ function ouvrirChant(id, focus = false) {
     $("#chant-titre").value = chant?.titre || "";
     $("#chant-artiste").value = chant?.artiste || "";
     $("#chant-tonalite").value = chant?.tonalite || "";
+    $("#chant-tempo").value = chant?.tempo || "";
     $("#chant-contenu").value = chant?.contenu || "";
     $("#supprimer-chant").disabled = !chant;
     etat.decalage = 0;
@@ -363,6 +365,7 @@ async function enregistrerChant() {
         titre: $("#chant-titre").value,
         artiste: $("#chant-artiste").value,
         tonalite: $("#chant-tonalite").value,
+        tempo: Number($("#chant-tempo").value) || null,   // case vide = pas de tempo
         contenu: $("#chant-contenu").value,
     };
     if (!corps.titre.trim()) {

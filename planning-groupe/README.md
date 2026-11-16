@@ -79,7 +79,7 @@ src/main/resources/static/           interface web (index.html, style.css, app.j
 
 Classées de la plus simple à la plus difficile :
 
-1. **Ajouter un champ « tempo » (BPM) aux chants** : `Chant.java`, `ChantControleur.ChantRequete`, puis un `<input>` dans `index.html` et `app.js`.
+1. ✅ **Ajouter un champ « tempo » (BPM) aux chants** : `Chant.java`, `ChantControleur.ChantRequete`, puis un `<input>` dans `index.html` et `app.js`. *(fait)*
 2. **Ajouter un type d'événement** (ex. `MESSE`, `ENREGISTREMENT`) dans `TypeEvenement` et dans le `<select>` du formulaire.
 3. **Suggestion de capo** : dans `Transposeur`, écrire `int capoPour(String tonaliteJouee, String tonaliteVoulue)` + un test dans `TransposeurTest`.
 4. **Indisponibilités** : un membre indique « absent du … au … » (nouvelle entité + contrôleur).
