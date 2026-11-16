@@ -21,7 +21,7 @@ chaque membre l'ouvre depuis **son téléphone ou son ordinateur**, dans le navi
 
 | Partie | Technologie |
 |---|---|
-| Serveur | Java 21, Spring Boot 3 (web, JPA, validation) |
+| Serveur | Java 21, Spring Boot 4.1 (web, JPA, validation) |
 | Base de données | H2 (fichier `data/planning.mv.db`) ; fichiers joints dans `data/fichiers/` |
 | Interface | HTML / CSS / JavaScript (sans framework), responsive |
 | Tests | JUnit 5, MockMvc |

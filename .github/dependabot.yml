@@ -1,0 +1,9 @@
+# Dependabot surveille les bibliothèques du projet : il ouvre une pull request
+# quand une nouvelle version sort, notamment pour corriger une faille de sécurité.
+version: 2
+updates:
+  - package-ecosystem: "maven"
+    directory: "/planning-groupe"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
