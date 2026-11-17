@@ -37,6 +37,15 @@ public class Invitation {
         this.expireLe = expireLe;
     }
 
+    /**
+     * Vrai si le code peut encore servir : il n'a pas été utilisé et la date limite n'est pas passée.
+     *
+     * @param maintenant l'heure actuelle (donnée en paramètre pour pouvoir tester n'importe quelle date)
+     */
+    public boolean estValide(LocalDateTime maintenant) {
+        return !utilisee && maintenant.isBefore(expireLe);
+    }
+
     public Long getId() {
         return id;
     }
