@@ -22,12 +22,16 @@
         </label>
         <p id="erreur-connexion" class="erreur" role="alert"></p>
         <button class="principal">Se connecter</button>
-        <p class="info">Pas encore de compte, ou mot de passe oublié ? Demande à un administrateur du groupe.</p>
+        <button type="button" id="j-ai-un-code">J'ai un code d'invitation</button>
+        <p class="info">Mot de passe oublié ? Demande à un administrateur du groupe.</p>
     </form>
 
-    <!-- Tout premier lancement : création du compte administrateur -->
+    <!-- Création d'un compte : le tout premier (administrateur), ou avec un code d'invitation -->
     <form id="form-premier" hidden>
-        <p class="info">Bienvenue ! Crée le premier compte : ce sera l'administrateur du groupe.</p>
+        <p id="intro-inscription" class="info">Bienvenue ! Crée le premier compte : ce sera l'administrateur du groupe.</p>
+        <label id="champ-code" hidden><span id="libelle-code">Code d'installation</span>
+            <input name="code" autocomplete="off" autocapitalize="none" spellcheck="false">
+        </label>
         <label>Ton nom
             <input name="nom" required maxlength="60" autocomplete="name">
         </label>
@@ -37,11 +41,9 @@
         <label>Mot de passe (8 caractères minimum)
             <input name="motDePasse" type="password" required minlength="8" maxlength="64" autocomplete="new-password">
         </label>
-        <label id="champ-code" hidden>Code d'installation
-            <input name="code" autocomplete="off">
-        </label>
         <p id="erreur-premier" class="erreur" role="alert"></p>
         <button class="principal">Créer mon compte</button>
+        <button type="button" id="retour-connexion" hidden>J'ai déjà un compte</button>
     </form>
 </main>
 

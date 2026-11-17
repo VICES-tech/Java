@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import fr.vices.planning.depot.ChantDepot;
 import fr.vices.planning.depot.EvenementDepot;
+import fr.vices.planning.depot.InvitationDepot;
 import fr.vices.planning.depot.MembreDepot;
 import fr.vices.planning.depot.PieceJointeDepot;
 import org.junit.jupiter.api.BeforeEach;
@@ -49,8 +50,12 @@ abstract class TestAvecComptes {
     @Autowired
     private ChantDepot chants;
 
+    @Autowired
+    protected InvitationDepot invitations;
+
     @BeforeEach
     void viderLaBase() {
+        invitations.deleteAll();
         evenements.deleteAll();
         piecesJointes.deleteAll();
         chants.deleteAll();

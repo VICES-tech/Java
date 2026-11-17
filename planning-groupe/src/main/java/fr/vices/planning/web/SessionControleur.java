@@ -88,16 +88,19 @@ public class SessionControleur {
 
     /**
      * Crée un compte depuis la page de connexion.
-     * Le tout premier compte devient administrateur du groupe. Ensuite, l'inscription
-     * est fermée : ce sont les administrateurs qui créent les comptes.
+     * Le tout premier compte devient administrateur du groupe. Ensuite, il faut un
+     * code d'invitation, créé par un administrateur.
      */
     @PostMapping("/api/inscription")
     @ResponseStatus(HttpStatus.CREATED)
     public synchronized CompteVue inscrire(@Valid @RequestBody InscriptionRequete requete) {
         if (membres.existsByMotDePasseIsNotNull()) {
-            // À venir (exercice de Fabien) : accepter ici un code d'invitation valide.
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "L'inscription se fait sur invitation : demande à un administrateur de créer ton compte");
+            if (requete.code() == null || requete.code().isBlank()) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "L'inscription se fait sur invitation : demande un code à un administrateur");
+            }
+            return CompteVue.de(comptes.inscrireAvecInvitation(requete.code(), requete.nom(), requete.email(),
+                    requete.motDePasse(), requete.role(), requete.couleur()));
         }
         if (!codeInstallation.isEmpty() && !memeTexte(codeInstallation, requete.code())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Code d'installation incorrect");

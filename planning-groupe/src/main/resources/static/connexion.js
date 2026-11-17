@@ -63,18 +63,44 @@ $("#form-premier").addEventListener("submit", async (e) => {
     else location.replace("/");
 });
 
+/** Affiche le formulaire de création de compte : le tout premier, ou avec un code d'invitation. */
+function afficherInscription(premierCompte, codeDemande, code = "") {
+    const champs = $("#form-premier").elements;
+    $("#form-connexion").hidden = true;
+    $("#form-premier").hidden = false;
+    $("#erreur-premier").textContent = "";
+    $("#intro-inscription").textContent = premierCompte
+        ? "Bienvenue ! Crée le premier compte : ce sera l'administrateur du groupe."
+        : "Crée ton compte avec le code d'invitation reçu d'un administrateur.";
+    $("#libelle-code").textContent = premierCompte ? "Code d'installation" : "Code d'invitation";
+    $("#champ-code").hidden = !codeDemande;
+    champs.code.required = codeDemande;
+    champs.code.value = code;
+    $("#retour-connexion").hidden = premierCompte;
+    (codeDemande && !code ? champs.code : champs.nom).focus();
+}
+
+function afficherConnexion() {
+    $("#form-premier").hidden = true;
+    $("#form-connexion").hidden = false;
+    $("#form-connexion").elements.email.focus();
+}
+
+$("#j-ai-un-code").addEventListener("click", () => afficherInscription(false, true));
+$("#retour-connexion").addEventListener("click", afficherConnexion);
+
 async function demarrer() {
     const session = await (await fetch("/api/session")).json();
     if (session.connecte) {
         location.replace("/");
         return;
     }
+    // un lien d'invitation ressemble à /connexion.html?invitation=k7mq-x2pd-9fhw
+    const codeDuLien = new URLSearchParams(location.search).get("invitation");
     if (session.premierCompte) {
-        $("#form-connexion").hidden = true;
-        $("#form-premier").hidden = false;
-        $("#champ-code").hidden = !session.codeInstallationRequis;
-        $("#form-premier").elements.code.required = session.codeInstallationRequis;
-        $("#form-premier").elements.nom.focus();
+        afficherInscription(true, session.codeInstallationRequis);
+    } else if (codeDuLien) {
+        afficherInscription(false, true, codeDuLien);
     }
 }
 

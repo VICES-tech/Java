@@ -119,8 +119,10 @@ async function chargerMembres() {
     etat.membres = await api("GET", "/api/membres");
     const admin = etat.moi.admin;
     $("#form-membre").hidden = !admin;
+    $("#zone-invitations").hidden = !admin;
+    if (admin) chargerInvitations();
     $("#info-membres").textContent = admin
-        ? "Ajoute un membre : tu recevras un mot de passe provisoire à lui transmettre."
+        ? "Ajoute un membre directement (tu recevras un mot de passe provisoire à lui transmettre), ou crée une invitation plus bas."
         : "Seuls les administrateurs peuvent ajouter ou retirer des membres.";
 
     $("#membres").innerHTML = etat.membres.map((m) => {
@@ -191,24 +193,88 @@ $("#membres").addEventListener("click", async (e) => {
     }
 });
 
-/** Affiche un mot de passe provisoire à transmettre (il n'est montré qu'une fois). */
-function montrerCode(titre, texte, code) {
+/**
+ * Affiche un code à transmettre.
+ * @param aCopier ce que le bouton « Copier » met dans le presse-papiers (par défaut : le code seul)
+ */
+function montrerCode(titre, texte, code, aCopier = code) {
     $("#code-titre").textContent = titre;
     $("#code-texte").textContent = texte;
     $("#code-valeur").textContent = code;
+    $("#dialogue-code").dataset.aCopier = aCopier;
     $("#dialogue-code").showModal();
 }
 
 $("#code-fermer").addEventListener("click", () => {
     $("#code-valeur").textContent = "";
+    $("#dialogue-code").dataset.aCopier = "";
     $("#dialogue-code").close();
 });
 $("#code-copier").addEventListener("click", async () => {
     try {
-        await navigator.clipboard.writeText($("#code-valeur").textContent);
+        await navigator.clipboard.writeText($("#dialogue-code").dataset.aCopier);
         toast("Copié !");
     } catch {
         toast("Copie impossible : note-le à la main");
+    }
+});
+
+// ---------------------------------------------------------------------
+// Invitations (administrateurs)
+// ---------------------------------------------------------------------
+
+function lienInvitation(code) {
+    return `${location.origin}/connexion.html?invitation=${encodeURIComponent(code)}`;
+}
+
+function dateLimite(invitation) {
+    return new Date(invitation.expireLe).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
+}
+
+async function chargerInvitations() {
+    const invitations = await api("GET", "/api/invitations");
+    $("#invitations").innerHTML = invitations.map((i) => `<li>
+        <span class="code-court">${echapper(i.code)}</span>
+        <small>valable jusqu'au ${dateLimite(i)}</small>
+        <span class="actions">
+            <button data-invitation="${i.id}" data-action="partager">Partager</button>
+            <button data-invitation="${i.id}" data-action="annuler" class="danger">Annuler</button>
+        </span>
+    </li>`).join("");
+    $("#invitations").liste = invitations;
+}
+
+function partagerInvitation(invitation) {
+    const lien = lienInvitation(invitation.code);
+    montrerCode("Invitation à transmettre",
+        `Envoie ce lien au futur membre : il y crée son compte avec le code ci-dessous, avant le ${dateLimite(invitation)}.`,
+        invitation.code,
+        `Rejoins le groupe sur PlanIt : ${lien}\nCode d'invitation : ${invitation.code}`);
+}
+
+$("#nouvelle-invitation").addEventListener("click", async () => {
+    try {
+        const invitation = await api("POST", "/api/invitations");
+        await chargerInvitations();
+        partagerInvitation(invitation);
+    } catch (err) {
+        toast(err.message);
+    }
+});
+
+$("#invitations").addEventListener("click", async (e) => {
+    const bouton = e.target.closest("[data-invitation]");
+    if (!bouton) return;
+    const invitation = $("#invitations").liste.find((i) => i.id === Number(bouton.dataset.invitation));
+    try {
+        if (bouton.dataset.action === "partager") {
+            partagerInvitation(invitation);
+        } else if (confirm(`Annuler l'invitation ${invitation.code} ? Le code ne marchera plus.`)) {
+            await api("DELETE", `/api/invitations/${invitation.id}`);
+            await chargerInvitations();
+        }
+    } catch (err) {
+        toast(err.message);
     }
 });
 

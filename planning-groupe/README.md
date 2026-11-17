@@ -6,7 +6,8 @@ chaque membre l'ouvre depuis **son téléphone ou son ordinateur**, dans le navi
 ## ✨ Fonctionnalités
 
 - **Comptes** : chaque membre se connecte avec son e-mail et son mot de passe ; rien n'est visible sans connexion.
-  Les administrateurs créent les comptes, redonnent un mot de passe oublié et retirent un membre.
+  Les administrateurs créent les comptes ou envoient une **invitation** (un code valable 7 jours, à usage unique),
+  redonnent un mot de passe oublié et retirent un membre.
 - **Planning partagé** : répétitions, concerts, réunions, avec une vue par semaine.
 - **Participation** : chaque membre clique sur « ✋ Je participe ».
 - **Programme** : on associe une liste de chants à chaque événement.
@@ -40,8 +41,9 @@ mvn spring-boot:run
 Puis ouvrir <http://localhost:8080>.
 
 **Premier lancement** : la page propose de créer le premier compte, qui devient l'administrateur du groupe.
-Il ajoute ensuite les autres membres dans l'onglet « Membres » : chacun reçoit un mot de passe provisoire,
-à changer à sa première connexion.
+Il ajoute ensuite les autres membres dans l'onglet « Membres », de deux façons :
+- directement : il reçoit un mot de passe provisoire à transmettre, à changer à la première connexion ;
+- par invitation : il envoie un lien avec un code, et le futur membre crée lui-même son compte.
 
 **Depuis un téléphone** (même réseau Wi-Fi que le PC) : trouver l'adresse IP du PC
 (`ipconfig` sous Windows, `ip a` sous Linux) puis ouvrir `http://<IP-du-PC>:8080`.
@@ -72,7 +74,7 @@ src/main/resources/static/           interface web (index.html, connexion.html, 
 |---|---|---|
 | GET | `/api/session` | qui est connecté ? |
 | POST | `/api/connexion`, `/api/deconnexion` | se connecter / se déconnecter |
-| POST | `/api/inscription` | créer le tout premier compte (administrateur) |
+| POST | `/api/inscription` | créer le tout premier compte (administrateur), puis un compte avec un code d'invitation |
 | POST | `/api/compte/mot-de-passe`, `/api/compte/suppression` | changer son mot de passe / supprimer son compte |
 | GET | `/api/membres` | lister les membres |
 | POST | `/api/membres` | créer un compte (administrateur) |
@@ -80,6 +82,8 @@ src/main/resources/static/           interface web (index.html, connexion.html, 
 | PUT | `/api/membres/{id}/admin` | donner ou retirer le droit d'administrateur |
 | POST | `/api/membres/{id}/mot-de-passe` | redonner un mot de passe provisoire (administrateur) |
 | DELETE | `/api/membres/{id}` | supprimer un compte (administrateur) |
+| GET / POST | `/api/invitations` | lister / créer une invitation (administrateur) |
+| DELETE | `/api/invitations/{id}` | annuler une invitation (administrateur) |
 | GET | `/api/evenements?du=AAAA-MM-JJ&au=AAAA-MM-JJ` | événements d'une période |
 | POST | `/api/evenements` | créer un événement |
 | PUT / DELETE | `/api/evenements/{id}` | modifier / supprimer |
@@ -111,8 +115,7 @@ Classées de la plus simple à la plus difficile :
 2. **Ajouter un type d'événement** (ex. `MESSE`, `ENREGISTREMENT`) dans `TypeEvenement` et dans le `<select>` du formulaire.
 3. **Suggestion de capo** : dans `Transposeur`, écrire `int capoPour(String tonaliteJouee, String tonaliteVoulue)` + un test dans `TransposeurTest`.
 4. **Indisponibilités** : un membre indique « absent du … au … » (nouvelle entité + contrôleur).
-5. **Invitation par code** : un administrateur crée un code, un nouveau membre s'inscrit lui-même avec ce code
-   (entité `Invitation`, puis `SessionControleur.inscrire`).
+5. ✅ **Invitation par code** : la fiche `Invitation`, la règle `estValide` et la recherche `findByCode`. *(fait)*
 6. **Mettre en ligne** l'application sur un petit serveur pour y accéder hors du Wi-Fi.
 
 ## 👤 Auteur

@@ -1,10 +1,13 @@
 package fr.vices.planning.securite;
 
 import fr.vices.planning.depot.EvenementDepot;
+import fr.vices.planning.depot.InvitationDepot;
 import fr.vices.planning.depot.MembreDepot;
 import fr.vices.planning.modele.Evenement;
+import fr.vices.planning.modele.Invitation;
 import fr.vices.planning.modele.Membre;
 import java.security.SecureRandom;
+import java.time.LocalDateTime;
 import java.util.Locale;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -25,14 +28,20 @@ public class ServiceComptes implements UserDetailsService {
     /** Lettres et chiffres faciles à lire et à dicter (pas de 0/O, 1/l/i). */
     private static final String ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789";
 
+    /** Durée de validité d'une invitation. */
+    public static final int JOURS_VALIDITE_INVITATION = 7;
+
     private final MembreDepot membres;
     private final EvenementDepot evenements;
+    private final InvitationDepot invitations;
     private final PasswordEncoder encodeur;
     private final SecureRandom hasard = new SecureRandom();
 
-    public ServiceComptes(MembreDepot membres, EvenementDepot evenements, PasswordEncoder encodeur) {
+    public ServiceComptes(MembreDepot membres, EvenementDepot evenements, InvitationDepot invitations,
+                          PasswordEncoder encodeur) {
         this.membres = membres;
         this.evenements = evenements;
+        this.invitations = invitations;
         this.encodeur = encodeur;
     }
 
@@ -87,6 +96,48 @@ public class ServiceComptes implements UserDetailsService {
 
     /** Fabrique un mot de passe provisoire au hasard, de la forme « k7mq-x2pd-9fhw ». */
     public String motDePasseProvisoire() {
+        return codeAleatoire();
+    }
+
+    /** Crée une invitation valable {@value #JOURS_VALIDITE_INVITATION} jours. */
+    @Transactional
+    public Invitation creerInvitation() {
+        String code;
+        do {
+            code = codeAleatoire();
+        } while (invitations.findByCode(code).isPresent());
+        return invitations.save(new Invitation(code, LocalDateTime.now().plusDays(JOURS_VALIDITE_INVITATION)));
+    }
+
+    /**
+     * Crée un compte de membre à partir d'un code d'invitation.
+     * Tout se fait d'un bloc : si l'e-mail est déjà pris, le code n'est pas consommé.
+     */
+    @Transactional
+    public Membre inscrireAvecInvitation(String code, String nom, String email, String motDePasse,
+                                         String role, String couleur) {
+        Invitation invitation = invitations.findByCode(normaliserCode(code))
+                .filter(trouvee -> trouvee.estValide(LocalDateTime.now()))
+                .orElseThrow(ServiceComptes::codeRefuse);
+        Membre membre = creer(nom, email, motDePasse, role, couleur, false, false);
+        if (invitations.marquerUtilisee(invitation.getId()) == 0) {
+            throw codeRefuse();   // utilisé par quelqu'un d'autre entre-temps : le compte est annulé
+        }
+        return membre;
+    }
+
+    /** Un code se tape sans se soucier des espaces autour ni des majuscules. */
+    public static String normaliserCode(String code) {
+        return code == null ? "" : code.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private static ResponseStatusException codeRefuse() {
+        return new ResponseStatusException(HttpStatus.FORBIDDEN,
+                "Code d'invitation inconnu, expiré ou déjà utilisé : demande-en un nouveau");
+    }
+
+    /** 12 caractères au hasard, groupés par 4 : « k7mq-x2pd-9fhw ». */
+    private String codeAleatoire() {
         StringBuilder resultat = new StringBuilder();
         for (int i = 0; i < 12; i++) {
             if (i > 0 && i % 4 == 0) {
