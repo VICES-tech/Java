@@ -7,6 +7,7 @@ import fr.vices.planning.fichiers.StockageFichiers;
 import fr.vices.planning.modele.Chant;
 import fr.vices.planning.modele.Evenement;
 import fr.vices.planning.modele.PieceJointe;
+import fr.vices.planning.securite.MembreCourant;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import java.util.List;
@@ -23,7 +24,10 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
-/** API du répertoire de chants : /api/chants */
+/**
+ * API du répertoire de chants : /api/chants
+ * Tout le monde peut ajouter un chant ; seuls les administrateurs le modifient ou le suppriment.
+ */
 @RestController
 @RequestMapping("/api/chants")
 public class ChantControleur {
@@ -37,13 +41,15 @@ public class ChantControleur {
     private final EvenementDepot evenements;
     private final PieceJointeDepot piecesJointes;
     private final StockageFichiers stockage;
+    private final MembreCourant membreCourant;
 
-    public ChantControleur(ChantDepot chants, EvenementDepot evenements,
-                           PieceJointeDepot piecesJointes, StockageFichiers stockage) {
+    public ChantControleur(ChantDepot chants, EvenementDepot evenements, PieceJointeDepot piecesJointes,
+                           StockageFichiers stockage, MembreCourant membreCourant) {
         this.chants = chants;
         this.evenements = evenements;
         this.piecesJointes = piecesJointes;
         this.stockage = stockage;
+        this.membreCourant = membreCourant;
     }
 
     @GetMapping
@@ -68,6 +74,7 @@ public class ChantControleur {
     @PutMapping("/{id}")
     @Transactional
     public Chant modifier(@PathVariable Long id, @Valid @RequestBody ChantRequete requete) {
+        membreCourant.exigerAdmin();
         Chant chant = trouver(id);
         chant.setTitre(requete.titre().trim());
         chant.setArtiste(requete.artiste());
@@ -81,6 +88,7 @@ public class ChantControleur {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Transactional
     public void supprimer(@PathVariable Long id) {
+        membreCourant.exigerAdmin();
         Chant chant = trouver(id);
         for (Evenement e : evenements.findByChantsContaining(chant)) {
             e.getChants().remove(chant);

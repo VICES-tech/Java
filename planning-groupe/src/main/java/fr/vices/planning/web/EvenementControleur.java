@@ -27,7 +27,11 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
-/** API du planning : /api/evenements */
+/**
+ * API du planning : /api/evenements
+ * Tout le monde peut ajouter un événement et s'y inscrire ; seuls les administrateurs
+ * le modifient ou le suppriment.
+ */
 @RestController
 @RequestMapping("/api/evenements")
 public class EvenementControleur {
@@ -83,6 +87,7 @@ public class EvenementControleur {
     @PutMapping("/{id}")
     @Transactional
     public Evenement modifier(@PathVariable Long id, @Valid @RequestBody EvenementRequete requete) {
+        membreCourant.exigerAdmin();
         Evenement evenement = trouver(id);
         remplir(evenement, requete);
         return evenement;
@@ -91,6 +96,7 @@ public class EvenementControleur {
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void supprimer(@PathVariable Long id) {
+        membreCourant.exigerAdmin();
         evenements.delete(trouver(id));
     }
 

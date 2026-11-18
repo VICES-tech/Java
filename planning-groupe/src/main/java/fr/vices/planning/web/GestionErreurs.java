@@ -15,7 +15,7 @@ public class GestionErreurs {
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<Map<String, String>> fichierTropGros() {
         return ResponseEntity.status(HttpStatus.CONTENT_TOO_LARGE)
-                .body(Map.of("message", "Fichier trop volumineux (100 Mo maximum)"));
+                .body(Map.of("message", "Fichier trop volumineux (500 Mo maximum)"));
     }
 
     /** Un champ de formulaire mal rempli : on renvoie le message écrit sur le champ. */

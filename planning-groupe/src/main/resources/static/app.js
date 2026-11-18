@@ -433,8 +433,8 @@ function carteEvenement(ev, moi) {
         <div class="barre">
             <button data-participer="${ev.id}" data-oui="${!jeParticipe}">
                 ${jeParticipe ? "Je ne viens plus" : "✋ Je participe"}</button>
-            <button data-modifier="${ev.id}">Modifier</button>
-            <button class="danger" data-supprimer="${ev.id}">Supprimer</button>
+            ${etat.moi.admin ? `<button data-modifier="${ev.id}">Modifier</button>
+            <button class="danger" data-supprimer="${ev.id}">Supprimer</button>` : ""}
         </div>
     </div>`;
 }
@@ -578,13 +578,27 @@ function ouvrirChant(id, focus = false) {
     $("#chant-tonalite").value = chant?.tonalite || "";
     $("#chant-tempo").value = chant?.tempo || "";
     $("#chant-contenu").value = chant?.contenu || "";
-    $("#supprimer-chant").disabled = !chant;
+    autoriserModificationChant(!chant || etat.moi.admin, Boolean(chant) && etat.moi.admin);
     etat.decalage = 0;
     $("#tonalite-cible").value = "";
     afficherListeChants();
     transposer();
     chargerPiecesJointes();
     if (focus) $("#chant-titre").focus();
+}
+
+/**
+ * Un nouveau chant se remplit librement ; un chant existant ne se modifie
+ * ou ne se supprime que par un administrateur.
+ */
+function autoriserModificationChant(modifiable, supprimable) {
+    for (const champ of ["#chant-titre", "#chant-artiste", "#chant-tonalite", "#chant-tempo", "#chant-contenu"]) {
+        $(champ).readOnly = !modifiable;
+    }
+    $("#enregistrer-chant").hidden = !modifiable;
+    $("#appliquer").hidden = !modifiable;
+    $("#supprimer-chant").hidden = !supprimable;
+    $("#info-chant").hidden = modifiable;
 }
 
 $("#enregistrer-chant").addEventListener("click", enregistrerChant);
@@ -608,7 +622,7 @@ async function enregistrerChant() {
             : await api("POST", "/api/chants", corps);
         await chargerChants();
         etat.chantCourant = etat.chants.find((c) => c.id === chant.id);
-        $("#supprimer-chant").disabled = false;
+        autoriserModificationChant(etat.moi.admin, etat.moi.admin);
         afficherListeChants();
         chargerPiecesJointes();
         toast("Chant enregistré");
@@ -662,7 +676,7 @@ async function chargerPiecesJointes() {
             <div class="pj-ligne">
                 <a href="${url}" target="_blank" rel="noopener">${icone(pj.type)} ${echapper(pj.nom)}</a>
                 <small>${tailleLisible(pj.taille)}</small>
-                <button class="danger" data-supprimer-pj="${pj.id}" aria-label="Supprimer ${echapper(pj.nom)}">✕</button>
+                ${etat.moi.admin ? `<button class="danger" data-supprimer-pj="${pj.id}" aria-label="Supprimer ${echapper(pj.nom)}">✕</button>` : ""}
             </div>
             ${lecteur}
         </li>`;

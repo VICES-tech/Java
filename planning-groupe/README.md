@@ -8,12 +8,14 @@ chaque membre l'ouvre depuis **son téléphone ou son ordinateur**, dans le navi
 - **Comptes** : chaque membre se connecte avec son e-mail et son mot de passe ; rien n'est visible sans connexion.
   Les administrateurs créent les comptes ou envoient une **invitation** (un code valable 7 jours, à usage unique),
   redonnent un mot de passe oublié et retirent un membre.
+- **Droits** : tout le monde ajoute des dates, des chants et des fichiers ; seuls les administrateurs
+  les modifient ou les suppriment.
 - **Planning partagé** : répétitions, concerts, réunions, avec une vue par semaine.
 - **Participation** : chaque membre clique sur « ✋ Je participe ».
 - **Programme** : on associe une liste de chants à chaque événement.
 - **Répertoire de chants** : paroles et accords, avec recherche.
 - **Pièces jointes** : on joint à chaque chant n'importe quel fichier (enregistrement audio,
-  vidéo, partition PDF, photo…). Les sons et vidéos se lisent directement dans la page.
+  vidéo, partition PDF, photo…), jusqu'à 500 Mo. Les sons et vidéos se lisent directement dans la page.
 - **Transposition** de n'importe quel chant :
   - monter ou descendre par demi-ton, ou choisir directement la tonalité d'arrivée ;
   - accords **au-dessus des paroles** (l'alignement est conservé) ou **entre crochets** `[Am]comme ça` ;
@@ -102,6 +104,7 @@ Toutes les adresses demandent d'être connecté, sauf `/api/session`, `/api/conn
 - Chaque envoi qui modifie quelque chose porte un jeton anti-CSRF.
 - L'e-mail d'un membre n'est visible que par lui-même et par les administrateurs.
 - Il reste toujours au moins un administrateur dans le groupe.
+- Modifier ou supprimer un événement, un chant ou un fichier est réservé aux administrateurs (vérifié par le serveur).
 
 Avant la mise en ligne, il restera à activer : HTTPS, le code d'installation
 (`planit.code-installation`), la limitation des tentatives de connexion et des sessions

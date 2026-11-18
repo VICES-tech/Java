@@ -5,6 +5,7 @@ import fr.vices.planning.depot.PieceJointeDepot;
 import fr.vices.planning.fichiers.StockageFichiers;
 import fr.vices.planning.modele.Chant;
 import fr.vices.planning.modele.PieceJointe;
+import fr.vices.planning.securite.MembreCourant;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -36,10 +37,14 @@ public class PieceJointeControleur {
     private final ChantDepot chants;
     private final StockageFichiers stockage;
 
-    public PieceJointeControleur(PieceJointeDepot piecesJointes, ChantDepot chants, StockageFichiers stockage) {
+    private final MembreCourant membreCourant;
+
+    public PieceJointeControleur(PieceJointeDepot piecesJointes, ChantDepot chants, StockageFichiers stockage,
+                                 MembreCourant membreCourant) {
         this.piecesJointes = piecesJointes;
         this.chants = chants;
         this.stockage = stockage;
+        this.membreCourant = membreCourant;
     }
 
     @GetMapping("/api/chants/{chantId}/pieces-jointes")
@@ -107,6 +112,7 @@ public class PieceJointeControleur {
     @DeleteMapping("/api/pieces-jointes/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void supprimer(@PathVariable Long id) {
+        membreCourant.exigerAdmin();
         PieceJointe pj = trouver(id);
         piecesJointes.delete(pj);
         stockage.supprimer(pj.getNomStocke());
