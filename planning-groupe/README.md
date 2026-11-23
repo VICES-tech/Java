@@ -27,9 +27,10 @@ chaque membre l'ouvre depuis **son téléphone ou son ordinateur**, dans le navi
 | Partie | Technologie |
 |---|---|
 | Serveur | Java 21, Spring Boot 4.1 (web, JPA, validation, sécurité) |
-| Base de données | H2 (fichier `data/planning.mv.db`) ; fichiers joints dans `data/fichiers/` |
+| Base de données | PostgreSQL en production ; H2 (fichier `data/planning.mv.db`) en développement et pour les tests. Schéma géré par Flyway |
+| Fichiers joints | Dossier `data/fichiers/` |
 | Interface | HTML / CSS / JavaScript (sans framework), responsive |
-| Tests | JUnit 5, MockMvc, Spring Security Test |
+| Tests | JUnit 5, MockMvc, Spring Security Test ; lancés sur H2 et sur PostgreSQL par GitHub Actions |
 
 ## 🚀 Lancer l'application
 
@@ -56,6 +57,38 @@ Lancer les tests :
 mvn test
 ```
 
+Les lancer sur un vrai PostgreSQL (base vide `planit_test`) :
+
+```bash
+PLANIT_TEST_DB_URL=jdbc:postgresql://localhost:5432/planit_test \
+PLANIT_TEST_DB_USER=planit PLANIT_TEST_DB_PASSWORD=... mvn test
+```
+
+### Base de données
+
+En développement, rien à installer : la base H2 est rangée dans `data/`, en mode compatible PostgreSQL.
+Les tables sont créées par les scripts **Flyway** de `src/main/resources/db/migration/`
+(`V1__schema_initial.sql`, puis `V2__…`, etc.) ; Hibernate vérifie au démarrage qu'elles
+correspondent aux classes Java.
+
+- **Faire évoluer la base** : ajouter un nouveau fichier `V2__description.sql`. Ne jamais modifier
+  un fichier déjà appliqué.
+- **Ancienne base de développement** : si le dossier `data/` vient d'une version antérieure au
+  23 novembre 2026, le supprimer avant de relancer (Flyway refuse une base créée sans lui).
+
+### Production
+
+```bash
+mvn package
+SPRING_PROFILES_ACTIVE=prod \
+PLANIT_DB_URL=jdbc:postgresql://localhost:5432/planit \
+PLANIT_DB_USER=planit PLANIT_DB_PASSWORD=... \
+PLANIT_CODE_INSTALLATION=... \
+java -jar target/planning-groupe-0.1.0.jar
+```
+
+Sans l'une de ces variables, l'application refuse de démarrer et dit laquelle manque.
+
 ## 🗂️ Organisation du code
 
 ```
@@ -68,6 +101,7 @@ src/main/java/fr/vices/planning/
 ├── securite/                        connexion, mots de passe chiffrés, droits des administrateurs
 └── web/                             API REST appelée par l'interface
 src/main/resources/static/           interface web (index.html, connexion.html, style.css, app.js…)
+src/main/resources/db/migration/     scripts Flyway qui créent et font évoluer la base
 ```
 
 ### API REST
@@ -106,9 +140,9 @@ Toutes les adresses demandent d'être connecté, sauf `/api/session`, `/api/conn
 - Il reste toujours au moins un administrateur dans le groupe.
 - Modifier ou supprimer un événement, un chant ou un fichier est réservé aux administrateurs (vérifié par le serveur).
 
-Avant la mise en ligne, il restera à activer : HTTPS, le code d'installation
-(`planit.code-installation`), la limitation des tentatives de connexion et des sessions
-qui survivent au redémarrage du serveur.
+Avant la mise en ligne, il restera à activer : HTTPS, la limitation des tentatives de connexion
+et des sessions qui survivent au redémarrage du serveur. Le code d'installation est obligatoire
+en production (`PLANIT_CODE_INSTALLATION`).
 
 ## 🧑‍💻 À toi de jouer (idées d'exercices)
 

@@ -15,18 +15,19 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpSession;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.AbstractMockHttpServletRequestBuilder;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Base commune des tests de l'API : une base H2 en mémoire, vidée avant chaque test,
- * et de quoi créer des comptes et se connecter comme le ferait un navigateur.
+ * Base commune des tests de l'API : une base vidée avant chaque test (H2 en mémoire,
+ * ou PostgreSQL, voir application-test.properties), et de quoi créer des comptes
+ * et se connecter comme le ferait un navigateur.
  */
-@SpringBootTest(properties = {
-        "spring.datasource.url=jdbc:h2:mem:test;DB_CLOSE_DELAY=-1",
-        "planning.dossier-fichiers=target/test-fichiers"})
+@SpringBootTest
+@ActiveProfiles("test")
 @AutoConfigureMockMvc
 abstract class TestAvecComptes {
 

@@ -1,0 +1,66 @@
+# Lance les tests automatiques de PlanIt à chaque envoi de code sur GitHub.
+# Deux passages : sur H2 (comme sur l'ordinateur de développement)
+# et sur un vrai PostgreSQL (comme sur le serveur en ligne).
+name: Tests PlanIt
+
+on:
+  push:
+    paths:
+      - "planning-groupe/**"
+      - ".github/workflows/tests-planit.yml"
+  pull_request:
+    paths:
+      - "planning-groupe/**"
+      - ".github/workflows/tests-planit.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  h2:
+    name: Tests (H2)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: planning-groupe
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - run: mvn -B test
+
+  postgresql:
+    name: Tests (PostgreSQL 16)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: planning-groupe
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: planit_test
+          POSTGRES_USER: planit
+          POSTGRES_PASSWORD: planit-ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U planit"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - run: mvn -B test
+        env:
+          PLANIT_TEST_DB_URL: jdbc:postgresql://localhost:5432/planit_test
+          PLANIT_TEST_DB_USER: planit
+          PLANIT_TEST_DB_PASSWORD: planit-ci
